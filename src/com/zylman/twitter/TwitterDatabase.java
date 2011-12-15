@@ -1,11 +1,17 @@
 package com.zylman.twitter;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import twitter4j.Status;
 
@@ -44,7 +50,6 @@ public class TwitterDatabase {
 			@Override public void create(Statement s) throws SQLException {
 				s.execute(getCreationStatement(STATUS_TABLE_NAME));
 				s.execute("ALTER TABLE " + STATUS_TABLE_NAME + " ADD PRIMARY KEY (id)");
-				s.close();
 				System.out.println("TwitterDatabase.create(): successfully created status table.");
 			}
 
@@ -56,8 +61,7 @@ public class TwitterDatabase {
 		put(WORDCOUNT_TABLE_NAME, new Table() {
 			@Override public void create(Statement s) throws SQLException {
 				s.execute(getCreationStatement(WORDCOUNT_TABLE_NAME));
-				s.execute("ALTER TABLE " + WORDCOUNT_TABLE_NAME + " ADD INDEX (word)");
-				s.close();
+				s.execute("ALTER TABLE " + WORDCOUNT_TABLE_NAME + " ADD PRIMARY KEY (word)");
 				System.out.println("TwitterDatabase.create(): successfully created wordcount table.");
 			}
 
@@ -69,8 +73,7 @@ public class TwitterDatabase {
 		put(INTERACTORS_TABLE_NAME, new Table() {
 			@Override public void create(Statement s) throws SQLException {
 				s.execute(getCreationStatement(INTERACTORS_TABLE_NAME));
-				s.execute("ALTER TABLE " + INTERACTORS_TABLE_NAME + " ADD INDEX (user)");
-				s.close();
+				s.execute("ALTER TABLE " + INTERACTORS_TABLE_NAME + " ADD PRIMARY KEY (user)");
 				System.out.println("TwitterDatabase.create(): successfully created interactors table.");
 			}
 
@@ -89,14 +92,41 @@ public class TwitterDatabase {
 		}
 	}
 	
-	public void addStatuses(List<Status> statuses) {
+	public void addStatuses(List<Status> statuses) throws TwitterDatabaseException {
 		for (Status status : statuses) {
 			addStatus(status);
 		}
 	}
 	
-	public void addStatus(Status status) {
-		
+	public void addStatus(Status status) throws TwitterDatabaseException {
+		try {
+			ResultSet r = database.executeQuery("SELECT COUNT(*) FROM " + STATUS_TABLE_NAME + " WHERE id=" + status.getId());
+			r.first();
+			int count = r.getInt(1);
+			if (count == 0) {
+				database.insert(STATUS_TABLE_NAME,
+						Long.toString(status.getId()),
+						status.isRetweet() ? "1" : "0",
+						status.getText());
+				
+				List<String> words = Arrays.asList(status.getText().split(" "));
+				for (String word : words) {
+					if (word.indexOf("@") != 0)
+						database.execute(getAddOrIncrementQuery(WORDCOUNT_TABLE_NAME, word));
+				}
+				
+				Set<String> mentions = getMentions(status);
+				for (String mention : mentions) {
+					database.execute(getAddOrIncrementQuery(INTERACTORS_TABLE_NAME, mention));
+				}
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException adding status" + e.getMessage());
+			throw new TwitterDatabaseException(e, "Failed to add status");
+		} catch (Exception e) {
+			System.out.println("Exception adding status" + e.getMessage());
+			throw new TwitterDatabaseException(e, "Failed to add status");
+		}
 	}
 	
 	private String getCreationStatement(String tableName) {
@@ -119,5 +149,38 @@ public class TwitterDatabase {
 		}
 		
 		return result.substring(0, result.length() - 2);
+	}
+	
+	private String getAddOrIncrementQuery(String table, String value) {
+		String encodedValue;
+		try {
+			encodedValue = URLEncoder.encode(value, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			encodedValue = value;
+		}
+		return "INSERT INTO " + table + " VALUES ('" + encodedValue + "',1)" + "ON DUPLICATE KEY UPDATE count=count+1";
+	}
+	
+	private static Set<String> getMentions(Status status) {
+		Set<String> result = new HashSet<String>();
+		result.add(filterMention(status.getInReplyToScreenName()));
+		List<String> words = Arrays.asList(status.getText().split(" "));
+		for (String word : words) {
+			if (word.indexOf('@') == 0) {
+				result.add(filterMention(word));
+			}
+		}
+		result.remove(null);
+		return result;
+	}
+	
+	/**
+	 * Remove any extraneous characters that aren't part of the user name (leading @, trailing :).
+	 */
+	private static String filterMention(String string) {
+		if (string == null) {
+			return null;
+		}
+		return string.replaceAll("[@:]", "");
 	}
 }
