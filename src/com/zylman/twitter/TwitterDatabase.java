@@ -4,7 +4,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+
+import twitter4j.Status;
 
 public class TwitterDatabase {	
 	private static Database database;
@@ -84,6 +87,16 @@ public class TwitterDatabase {
 		} catch (Exception ex) {
 			throw new TwitterDatabaseException(ex,"Could not initialize database.");
 		}
+	}
+	
+	public void addStatuses(List<Status> statuses) {
+		for (Status status : statuses) {
+			addStatus(status);
+		}
+	}
+	
+	public void addStatus(Status status) {
+		
 	}
 	
 	private String getCreationStatement(String tableName) {

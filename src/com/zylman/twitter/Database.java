@@ -102,18 +102,24 @@ public class Database {
 		}
 	}
 	
-	private Statement getStatement(boolean editable) throws DatabaseException
-	{
-		try 
-		{
-			if (!editable){
+	private Statement getStatement(boolean editable) throws DatabaseException {
+		try  {
+			if (!editable) {
 				return connection.createStatement();
-			}else{
+			} else {
 				return connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 			}
-			
 		} catch (SQLException e) {
 			throw new DatabaseException(e, "Could not create statement");
+		}
+	}
+	
+	public ResultSet runQuery(String query) throws DatabaseException {
+		Statement s = getStatement(false);
+		try {
+			return s.executeQuery(query);
+		} catch (SQLException e) {
+			throw new DatabaseException(e, "Could not execute query");
 		}
 	}
 }
