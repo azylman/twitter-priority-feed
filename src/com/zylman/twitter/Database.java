@@ -73,7 +73,7 @@ public class Database {
 	 * Check to see which tables have been created and set status indicators accordingly
 	 */
 	private void assessTableStatus() throws DatabaseException {
-		System.out.println("EarmarkDatabase.assessTableStatus(): Checking tables...");
+		System.out.println("Database.assessTableStatus(): Checking tables...");
 		
 		try {
 			Statement s = this.getStatement(false);
@@ -98,7 +98,7 @@ public class Database {
 			
 			s.close();
 		} catch (SQLException e) {
-			throw new DatabaseException(e,"EarmarkDatabase.assessTableStatus():  SQL error attempting to check tables");
+			throw new DatabaseException(e,"Database.assessTableStatus():  SQL error attempting to check tables");
 		}
 	}
 	
