@@ -1,10 +1,8 @@
 package com.zylman.twitter;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -24,12 +22,19 @@ public class PriorityFeed {
 		
 		BufferedReader props = new BufferedReader(new FileReader("appauth.properties"));
 		
+		String consumerKey = props.readLine();
+		String consumerSecret = props.readLine();
+		String accessToken = props.readLine();
+		String accessTokenSecret = props.readLine();
+		String databaseUser = props.readLine();
+		String databasePass = props.readLine();
+		
 		ConfigurationBuilder cb = new ConfigurationBuilder();
 		cb.setDebugEnabled(true)
-			.setOAuthConsumerKey(props.readLine())
-			.setOAuthConsumerSecret(props.readLine())
-			.setOAuthAccessToken(props.readLine())
-			.setOAuthAccessTokenSecret(props.readLine());
+			.setOAuthConsumerKey(consumerKey)
+			.setOAuthConsumerSecret(consumerSecret)
+			.setOAuthAccessToken(accessToken)
+			.setOAuthAccessTokenSecret(accessTokenSecret);
 		TwitterFactory tf = new TwitterFactory(cb.build());
 		Twitter twitter = tf.getInstance();
 		
@@ -37,6 +42,8 @@ public class PriorityFeed {
 		List<Status> userPosts = twitter.getUserTimeline(new Paging().count(10));
 		printStatuses(userPosts);
 		// Get user's retweets - content to use in learning
+		List<Status> userRetweets = twitter.getRetweetedByMe(new Paging().count(10));
+		printStatuses(userRetweets);
 		// Get user's favorites - content to use in learning
 		// Get user's homeline - content to categorize
 	    List<Status> homeline = twitter.getHomeTimeline(new Paging().count(10));
@@ -46,24 +53,41 @@ public class PriorityFeed {
 	
 	private static void printStatuses(List<Status> statuses) {
 		for (Status status : statuses) {
-			Set<String> mentions = getMentions(status);
-	        System.out.println("From " + status.getUser().getName()
-	        		+ " mentioning " + convertStringsToString(mentions) + ": "
-	        		+ status.getText());
+			Status workingStatus = status;
+			String originalAuthor = status.getUser().getName();
+			String prefix = "From " + originalAuthor;
+			if (status.isRetweet()) {
+				workingStatus = status.getRetweetedStatus();
+				String currentAuthor = workingStatus.getUser().getName();
+				prefix = originalAuthor + " retweeted a status by " + currentAuthor;
+			}
+			Set<String> mentions = getMentions(workingStatus);
+	        System.out.println(prefix + " mentioning " + convertStringsToString(mentions) + ": "
+	        		+ workingStatus.getText());
 	    }
 	}
 
 	private static Set<String> getMentions(Status status) {
 		Set<String> result = new HashSet<String>();
-		result.add(status.getInReplyToScreenName());
+		result.add(filterMention(status.getInReplyToScreenName()));
 		List<String> words = Arrays.asList(status.getText().split(" "));
 		for (String word : words) {
 			if (word.indexOf('@') == 0) {
-				result.add(word.substring(1));
+				result.add(filterMention(word));
 			}
 		}
 		result.remove(null);
 		return result;
+	}
+	
+	/**
+	 * Remove any extraneous characters that aren't part of the user name (leading @, trailing :).
+	 */
+	private static String filterMention(String string) {
+		if (string == null) {
+			return null;
+		}
+		return string.replaceAll("[@:]", "");
 	}
 	
 	private static String convertStringsToString(Collection<String> strings) {
