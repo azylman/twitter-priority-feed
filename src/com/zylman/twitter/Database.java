@@ -1,5 +1,7 @@
 package com.zylman.twitter;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -34,7 +36,9 @@ public class Database {
 			assessTableStatus();
 			for (Map.Entry<String, Boolean> table : tableStatus.entrySet()) {
 				if (!table.getValue()) {
-					tables.get(table.getKey()).create(getStatement(false));
+					Statement s = getStatement(false);
+					tables.get(table.getKey()).create(s);
+					s.close();
 					tableStatus.put(table.getKey(), true);
 				}
 			}
@@ -114,12 +118,46 @@ public class Database {
 		}
 	}
 	
-	public ResultSet runQuery(String query) throws DatabaseException {
+	public ResultSet executeQuery(String query) throws DatabaseException {
 		Statement s = getStatement(false);
 		try {
 			return s.executeQuery(query);
 		} catch (SQLException e) {
+			System.out.println("Exception while trying to execute query: " + e.getMessage());
 			throw new DatabaseException(e, "Could not execute query");
 		}
+	}
+	
+	public boolean execute(String query) throws DatabaseException {
+		Statement s = getStatement(false);
+		try {
+			return s.execute(query);
+		} catch (SQLException e) {
+			System.out.println("Exception while trying to execute: " + e.getMessage());
+			throw new DatabaseException(e, "Could not execute query");
+		}
+	}
+	
+	public void insert(String table, String... values) throws DatabaseException {
+		String insert = "INSERT INTO " + table + " VALUES("
+				+ convertStringsToCommaDelimitedString(values)
+				+ ")";
+		execute(insert);
+	}
+	
+	private static String convertStringsToCommaDelimitedString(String... strings) {
+		StringBuilder out = new StringBuilder();
+		for (String string : strings) {
+			out.append("'");
+			try {
+				out.append(URLEncoder.encode(string, "UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				out.append(string);
+			}
+			out.append("'");
+			out.append(",");
+		}
+		out.deleteCharAt(out.length() - 1);
+		return out.toString();
 	}
 }
