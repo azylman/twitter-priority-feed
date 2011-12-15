@@ -78,11 +78,11 @@ public class TwitterDatabase {
 		
 	}};
 	
-	public TwitterDatabase(String host, String databaseName, String user, String pass) throws TwitterException {
+	public TwitterDatabase(String host, String databaseName, String user, String pass) throws TwitterDatabaseException {
 		try {	
 			database = new Database(host, databaseName, user, pass, tables);
 		} catch (Exception ex) {
-			throw new TwitterException(ex,"Could not initialize database.");
+			throw new TwitterDatabaseException(ex,"Could not initialize database.");
 		}
 	}
 	

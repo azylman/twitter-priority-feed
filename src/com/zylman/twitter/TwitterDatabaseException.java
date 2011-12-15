@@ -1,20 +1,20 @@
 package com.zylman.twitter;
 
 @SuppressWarnings("serial")
-public class TwitterException extends Exception {
+public class TwitterDatabaseException extends Exception {
 	private Exception underlyingException = null;
 	private String message = null;
 	
-	public TwitterException(Exception underlyingException, String message) {
+	public TwitterDatabaseException(Exception underlyingException, String message) {
 		this.underlyingException = underlyingException;
 		this.message = message;
 	}
 	
-	public TwitterException(Exception underlyingException) {
+	public TwitterDatabaseException(Exception underlyingException) {
 		this(underlyingException, null);
 	}
 	
-	public TwitterException(String message) {
+	public TwitterDatabaseException(String message) {
 		this(null, message);
 	}
 

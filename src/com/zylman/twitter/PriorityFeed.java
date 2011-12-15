@@ -18,7 +18,7 @@ import twitter4j.conf.ConfigurationBuilder;
 
 public class PriorityFeed {
 
-	public static void main(String[] args) throws TwitterException, IOException {
+	public static void main(String[] args) throws TwitterException, IOException, TwitterDatabaseException {
 		
 		BufferedReader props = new BufferedReader(new FileReader("appauth.properties"));
 		
@@ -28,6 +28,8 @@ public class PriorityFeed {
 		String accessTokenSecret = props.readLine();
 		String databaseUser = props.readLine();
 		String databasePass = props.readLine();
+		
+		TwitterDatabase twitterDatabase = new TwitterDatabase("localhost", "twitter", databaseUser, databasePass);
 		
 		ConfigurationBuilder cb = new ConfigurationBuilder();
 		cb.setDebugEnabled(true)
