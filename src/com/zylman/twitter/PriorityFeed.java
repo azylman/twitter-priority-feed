@@ -41,13 +41,21 @@ public class PriorityFeed {
 		Twitter twitter = tf.getInstance();
 		
 		// Get user's posts - content to use in learning (pay special attention to mentions)
-		List<Status> userPosts = twitter.getUserTimeline(new Paging().count(10));
+		// Maxes out at 200
+		List<Status> userPosts = twitter.getUserTimeline(new Paging().count(200));
+		twitterDatabase.addStatuses(userPosts);
 		printStatuses(userPosts);
+		
 		// Get user's retweets - content to use in learning
-		List<Status> userRetweets = twitter.getRetweetedByMe(new Paging().count(10));
+		// Maxes out at 100
+		List<Status> userRetweets = twitter.getRetweetedByMe(new Paging().count(100));
+		twitterDatabase.addStatuses(userRetweets);
 		printStatuses(userRetweets);
+		
 		// Get user's favorites - content to use in learning
+		
 		// Get user's homeline - content to categorize
+		// Maxes out at 200
 	    List<Status> homeline = twitter.getHomeTimeline(new Paging().count(10));
 	    printStatuses(homeline);
 	    
